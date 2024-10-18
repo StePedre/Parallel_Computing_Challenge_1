@@ -1,9 +1,9 @@
-In the src folder:
+In the src folder: <br>
 make
 
-To execute:
+To execute: <br>
 ../bin/mergesort-co <size of array>
 
 To rebuild:
-make clean
+make clean <br>
 make

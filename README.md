@@ -4,6 +4,6 @@ make
 To execute: <br>
 ../bin/mergesort-co <size of array>
 
-To rebuild:
+To rebuild: <br>
 make clean <br>
 make

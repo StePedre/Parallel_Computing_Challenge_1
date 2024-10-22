@@ -85,23 +85,46 @@ void MsMergeSequential(int *out, int *in, long begin1, long end1, long begin2, l
 	}
 }
 
+
 /**
-  * sequential merge step (straight-forward implementation)
+	Since the two halves of the array are ordered, a binary 
+	search can be applied to find the correct index for the second half.
+ */
+long indexBinarySearch(int *in, long begin, long end, int value) {
+    long left = begin;
+    long right = end;
+    
+    while (left < right) {
+        long mid = (left + right) / 2;
+
+        if (in[mid] == value)
+            return mid;
+
+        if (in[mid] < value)
+            left = mid+1;
+        else
+            right = mid;
+    }
+    
+    return left;
+}
+
+/**
+  * Parallel merge step
+  * It divides the two halves of the array into two new arrays. 
+  * The first half is divided in half, while the second half is 
+  * divided based on the value of the midpoint of the first half of the array.
   */
-// TODO: cut-off could also apply here (extra parameter?)
-// TODO: optional: we can also break merge in two halves
 void MsMergeParallelize(int *out, int *in, long begin1, long end1, long begin2, long end2, long outBegin, int depth) {
-	if(depth < ceil(log2(omp_get_max_threads())) && (end1 - begin1) + (end2 - begin2) > 1024){
+	if(depth < ceil(log2(omp_get_max_threads())) && (end1 - begin1) + (end2 - begin2) > 1300){
 		const long half1 = (begin1 + end1) / 2;
-		long half2 = begin2;
-		while(in[half1] > in[half2] && half2<end2)
-			half2++;
-		long outMid = outBegin + (half1 - begin1) + (half2 - begin2);
+		long half2 = indexBinarySearch(in, begin2, end2, in[half1]);
+		long outBegin2 = outBegin + (half1 - begin1) + (half2 - begin2);
         
         #pragma omp task
             MsMergeParallelize(out, in, begin1, half1, begin2, half2, outBegin, depth +1);
         #pragma omp task
-            MsMergeParallelize(out, in, half1, end1, half2, end2, outMid, depth + 1);
+            MsMergeParallelize(out, in, half1, end1, half2, end2, outBegin2, depth + 1);
         #pragma omp taskwait
     }else{
         long left = begin1;
@@ -136,9 +159,6 @@ void MsMergeParallelize(int *out, int *in, long begin1, long end1, long begin2, 
 /**
   * sequential MergeSort
   */
-// TODO: remember one additional parameter (depth)
-// TODO: recursive calls could be taskyfied
-// TODO: task synchronization also is required
 void MsSequential(int *array, int *tmp, bool inplace, long begin, long end) {
 	if (begin < (end - 1)) {
 		const long half = (begin + end) / 2;
@@ -155,11 +175,10 @@ void MsSequential(int *array, int *tmp, bool inplace, long begin, long end) {
 }
 
 /**
-  * sequential MergeSort
+  * parallel MergeSort
+  * The depth value is used to determine whether it makes sense to create a
+  * new thread by checking the maximum number of threads.
   */
-// TODO: remember one additional parameter (depth)
-// TODO: recursive calls could be taskyfied
-// TODO: task synchronization also is required
 void MsParallelize(int *array, int *tmp, bool inplace, long begin, long end, int depth) {
 	if (begin < (end - 1)) {
 		const long half = (begin + end) / 2;
@@ -202,9 +221,9 @@ void MsSerial(int *array, int *tmp, const size_t size) {
 
 /**
   * Parallel MergeSort
+  * There is a single thread that will start the execution. 
+  * Each thread will create two other threads, one for each half of the array.
   */
-// TODO: this function should create the parallel region
-// TODO: good point to compute a good depth level (cut-off)
 void MsParallel(int *array, int *tmp, const size_t size) {
 
     #pragma omp parallel

@@ -37,6 +37,10 @@
 
 #include <omp.h>
 
+#ifndef MERGE_CUT_OFF
+#define MERGE_CUT_OFF 1300
+#endif
+
 
 /**
   * helper routine: check if array is sorted correctly
@@ -116,7 +120,7 @@ long indexBinarySearch(int *in, long begin, long end, int value) {
   * divided based on the value of the midpoint of the first half of the array.
   */
 void MsMergeParallelize(int *out, int *in, long begin1, long end1, long begin2, long end2, long outBegin, int depth) {
-	if(depth < ceil(log2(omp_get_max_threads())) && (end1 - begin1) + (end2 - begin2) > 1300){
+	if(depth < ceil(log2(omp_get_max_threads())) && (end1 - begin1) + (end2 - begin2) > MERGE_CUT_OFF){
 		const long half1 = (begin1 + end1) / 2;
 		long half2 = indexBinarySearch(in, begin2, end2, in[half1]);
 		long outBegin2 = outBegin + (half1 - begin1) + (half2 - begin2);
